@@ -54,9 +54,9 @@ ssl:
 services:
   # Port mappings for all services
   ports:
-    frontend: 3000
-    backend: 8000
-    hapi_fhir: 8888
+    frontend: 13000
+    backend: 18000
+    hapi_fhir: 18888
     postgres: 5432
     redis: 6379
     nginx_http: 80
