@@ -146,10 +146,9 @@ def _apply_demo_accession_mapping(payload: Dict[str, Any], study: Dict[str, Any]
     payload["study"]["sourceWintEhrAccession"] = source_accession
     payload["study"]["orthancAccession"] = accession
     payload["study"]["studyDescription"] = (
-        f"Demo mapped Orthanc CT accession {accession} "
+        f"Demo mapped Orthanc accession {accession} "
         f"for WintEHR {payload['study']['studyDescription']}"
     )
-    payload["study"]["modality"] = "CT"
 
     mapped_note = (
         "DEMO IMAGE MAPPING:\n"
