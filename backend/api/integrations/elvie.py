@@ -2,6 +2,7 @@
 
 import base64
 import io
+import json
 import logging
 import os
 from pathlib import Path
@@ -24,6 +25,10 @@ VIEWER_URL = os.getenv("ELVIE_VIEWER_URL", "http://localhost:14175").rstrip("/")
 DICOMWEB_URL = os.getenv("ELVIE_DICOMWEB_URL", "/orthanc/dicom-web").rstrip("/")
 ORTHANC_URL = os.getenv("ELVIE_ORTHANC_URL", "http://host.docker.internal:18042").rstrip("/")
 DICOM_BASE_DIR = Path(os.getenv("DICOM_BASE_DIR", "/app/data/generated_dicoms"))
+DEFAULT_DEMO_ACCESSION_MAP = {
+    # WintEHR sample chest X-ray for Tammy Abernathy -> imported RSNA ICH CT study.
+    "4c059e2f-cf0d-82d3-586c-60ac99629f8d": "NI9f7fae",
+}
 
 
 class ElvieLaunchRequest(BaseModel):
@@ -36,6 +41,7 @@ class ElvieLaunchResponse(BaseModel):
     caseId: str
     accession: str
     importedDicomInstances: int
+    demoMappedAccession: Optional[str] = None
 
 
 def _resource_entries(bundle: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -110,6 +116,52 @@ def _report_text(report: Optional[Dict[str, Any]], study: Dict[str, Any]) -> str
         chunks.append(f"IMPRESSION:\n{conclusion}")
 
     return "\n\n".join(chunks).strip() or "No report text is available."
+
+
+def _demo_accession_map() -> Dict[str, str]:
+    raw_map = os.getenv("ELVIE_DEMO_ACCESSION_MAP")
+    if not raw_map:
+        return DEFAULT_DEMO_ACCESSION_MAP
+
+    try:
+        parsed = json.loads(raw_map)
+    except json.JSONDecodeError:
+        logger.warning("ELVIE_DEMO_ACCESSION_MAP is not valid JSON; ignoring demo accession map")
+        return {}
+
+    if not isinstance(parsed, dict):
+        logger.warning("ELVIE_DEMO_ACCESSION_MAP must be a JSON object; ignoring demo accession map")
+        return {}
+
+    return {str(key): str(value) for key, value in parsed.items() if value}
+
+
+def _demo_accession_for_study(study_id: str) -> Optional[str]:
+    return _demo_accession_map().get(study_id)
+
+
+def _apply_demo_accession_mapping(payload: Dict[str, Any], study: Dict[str, Any], accession: str) -> None:
+    source_accession = payload["accession"]
+    payload["accession"] = accession
+    payload["source"] = "wintehr-demo-accession-map"
+    payload["study"]["accession"] = accession
+    payload["study"]["sourceImagingStudyId"] = study["id"]
+    payload["study"]["sourceWintEhrAccession"] = source_accession
+    payload["study"]["orthancAccession"] = accession
+    payload["study"]["studyDescription"] = (
+        f"Demo mapped Orthanc CT accession {accession} "
+        f"for WintEHR {payload['study']['studyDescription']}"
+    )
+    payload["study"]["modality"] = "CT"
+
+    mapped_note = (
+        "DEMO IMAGE MAPPING:\n"
+        f"This WintEHR ImagingStudy ({study['id']}) is mapped to Orthanc accession {accession} "
+        "so Elvie can launch real imported sample DICOM images. The WintEHR report/study metadata "
+        "does not clinically match the displayed sample images."
+    )
+    report = payload.setdefault("report", {})
+    report["text"] = f"{mapped_note}\n\n{report.get('text') or _report_text(None, study)}"
 
 
 async def _find_report(
@@ -244,8 +296,11 @@ async def launch_elvie_case(request: ElvieLaunchRequest) -> ElvieLaunchResponse:
         study = await fhir.read("ImagingStudy", request.study_id)
         report = await _find_report(fhir, study, request.report_id)
         payload = _case_payload(study, report)
+        demo_accession = _demo_accession_for_study(request.study_id)
+        if demo_accession:
+            _apply_demo_accession_mapping(payload, study, demo_accession)
         await _upsert_case(payload)
-        imported = await _import_dicom_to_orthanc(request.study_id)
+        imported = 0 if demo_accession else await _import_dicom_to_orthanc(request.study_id)
     except httpx.HTTPStatusError as exc:
         logger.error("Elvie bridge HTTP error: %s", exc)
         raise HTTPException(
@@ -263,4 +318,5 @@ async def launch_elvie_case(request: ElvieLaunchRequest) -> ElvieLaunchResponse:
         caseId=payload["caseId"],
         accession=payload["accession"],
         importedDicomInstances=imported,
+        demoMappedAccession=demo_accession,
     )

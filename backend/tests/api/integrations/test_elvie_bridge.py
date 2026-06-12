@@ -69,6 +69,24 @@ def test_normalize_uid_strips_fhir_urn_oid_prefix():
     assert elvie._normalize_uid(None) is None
 
 
+def test_demo_accession_mapping_replaces_accession_and_marks_payload(monkeypatch):
+    monkeypatch.setenv("ELVIE_DEMO_ACCESSION_MAP", '{"study-123":"NI9f7fae"}')
+    payload = elvie._case_payload(sample_study(), sample_report())
+
+    accession = elvie._demo_accession_for_study("study-123")
+    elvie._apply_demo_accession_mapping(payload, sample_study(), accession)
+
+    assert payload["accession"] == "NI9f7fae"
+    assert payload["source"] == "wintehr-demo-accession-map"
+    assert payload["study"]["accession"] == "NI9f7fae"
+    assert payload["study"]["sourceImagingStudyId"] == "study-123"
+    assert payload["study"]["sourceWintEhrAccession"] == "study-123"
+    assert payload["study"]["orthancAccession"] == "NI9f7fae"
+    assert payload["study"]["modality"] == "CT"
+    assert "DEMO IMAGE MAPPING" in payload["report"]["text"]
+    assert "NI9f7fae" in payload["report"]["text"]
+
+
 @pytest.mark.asyncio
 async def test_find_report_matches_based_on_imaging_study_reference():
     fhir = AsyncMock()

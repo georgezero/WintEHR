@@ -155,6 +155,35 @@ ELVIE_VIEWER_URL=http://localhost:14175
 ELVIE_DICOMWEB_URL=/orthanc/dicom-web
 ```
 
+Optional demo-only mapping from WintEHR ImagingStudy ids to Orthanc accessions:
+
+```env
+ELVIE_DEMO_ACCESSION_MAP={"4c059e2f-cf0d-82d3-586c-60ac99629f8d":"NI9f7fae"}
+```
+
+This is intentionally a fake transform for local demos where the WintEHR fake patient imaging metadata does not match imported DICOM sample data. The default map launches:
+
+- WintEHR patient: `Patient/7569a069-4ea2-7c1d-9191-7199d9b1c985` (`Tammy740 Deneen201 Abernathy524`)
+- WintEHR study: `ImagingStudy/4c059e2f-cf0d-82d3-586c-60ac99629f8d`
+- WintEHR procedure: `Plain chest X-ray (procedure)`
+- Orthanc sample accession: `NI9f7fae`
+- Orthanc sample modality: `CT`
+
+When this mapping is active, the case JSON is marked with:
+
+```json
+{
+  "source": "wintehr-demo-accession-map",
+  "study": {
+    "sourceImagingStudyId": "4c059e2f-cf0d-82d3-586c-60ac99629f8d",
+    "sourceWintEhrAccession": "4c059e2f-cf0d-82d3-586c-60ac99629f8d",
+    "orthancAccession": "NI9f7fae"
+  }
+}
+```
+
+The Elvie report text also includes a `DEMO IMAGE MAPPING` notice so it is clear the displayed images do not clinically match the WintEHR source study.
+
 For Cloudflare tunnel use, the browser-facing values may need to become public tunnel URLs, for example:
 
 ```env
