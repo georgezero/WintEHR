@@ -67,7 +67,9 @@ import {
   ViewList as ListIcon,
   AccountCircle as BodyMapIcon,
   AccessTime as RecentIcon,
-  Collections as CollectionsIcon
+  Collections as CollectionsIcon,
+  Close as CloseIcon,
+  OpenInNew as OpenInNewIcon
 } from '@mui/icons-material';
 import { format, parseISO, formatDistanceToNow, isWithinInterval, subDays, subMonths } from 'date-fns';
 import { formatClinicalDate } from '../../../../core/fhir/utils/dateFormatUtils';
@@ -367,8 +369,15 @@ const ImagingStudyCard = React.memo(({ study, onView, onAction, density = 'comfo
     },
     {
       type: 'button',
+      label: 'Elvie View',
+      onClick: () => onAction(study, 'elvie-view'),
+      icon: <FullscreenIcon fontSize="small" />
+    },
+    {
+      type: 'button',
       label: 'Elvie',
-      onClick: () => onAction(study, 'elvie')
+      onClick: () => onAction(study, 'elvie'),
+      icon: <OpenInNewIcon fontSize="small" />
     },
     {
       type: 'button',
@@ -493,6 +502,104 @@ const DICOMViewerDialog = ({ open, onClose, study, onDownload }) => {
   );
 };
 
+const ElvieViewerDialog = ({ open, onClose, launchUrl, study }) => {
+  const theme = useTheme();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      setLoading(true);
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open, launchUrl]);
+
+  if (!open || !launchUrl) return null;
+
+  return (
+    <Box sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 1300,
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: theme.palette.mode === 'dark' ? '#050505' : '#0a0a0a',
+      overflow: 'hidden'
+    }}>
+      <Paper
+        square
+        sx={{
+          px: 2,
+          py: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(20, 20, 20, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+          zIndex: 1301
+        }}
+      >
+        <Typography variant="subtitle1" noWrap sx={{ flex: 1 }}>
+          Elvie Viewer{study?.description ? ` - ${study.description}` : ''}
+        </Typography>
+        <Tooltip title="Open in new tab">
+          <IconButton
+            size="small"
+            onClick={() => window.open(launchUrl, '_blank', 'noopener,noreferrer')}
+          >
+            <OpenInNewIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Close">
+          <IconButton size="small" onClick={onClose}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Paper>
+
+      <Box sx={{ position: 'relative', flex: 1, minHeight: 0 }}>
+        {loading && (
+          <Box sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.72)',
+            color: 'white'
+          }}>
+            <Stack spacing={2} alignItems="center">
+              <CircularProgress color="inherit" />
+              <Typography variant="body2">Loading Elvie viewer...</Typography>
+            </Stack>
+          </Box>
+        )}
+        <Box
+          component="iframe"
+          title="Elvie Viewer"
+          src={launchUrl}
+          onLoad={() => setLoading(false)}
+          sx={{
+            width: '100%',
+            height: '100%',
+            border: 0,
+            display: 'block',
+            backgroundColor: '#000'
+          }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
 const ImagingTab = ({
   patientId,
   onNotificationUpdate,
@@ -513,6 +620,7 @@ const ImagingTab = ({
   const scrollContainerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [viewerDialog, setViewerDialog] = useState({ open: false, study: null });
+  const [elvieViewerDialog, setElvieViewerDialog] = useState({ open: false, study: null, launchUrl: null });
   const [reportDialog, setReportDialog] = useState({ open: false, study: null });
   const [downloadDialog, setDownloadDialog] = useState({ open: false, study: null });
   const [shareDialog, setShareDialog] = useState({ open: false, study: null });
@@ -925,6 +1033,9 @@ const ImagingTab = ({
       case 'download':
         setDownloadDialog({ open: true, study });
         break;
+      case 'elvie-view':
+        handleElvieEmbeddedLaunch(study);
+        break;
       case 'elvie':
         handleElvieLaunch(study);
         break;
@@ -1014,20 +1125,24 @@ const ImagingTab = ({
     }
   };
 
+  const getElvieLaunchUrl = async (study) => {
+    const response = await apiClient.post('/api/integrations/elvie/launch', {
+      studyId: study.id
+    });
+    const launchUrl = response.data?.launchUrl;
+    if (!launchUrl) {
+      throw new Error('Elvie launch URL was not returned');
+    }
+    return launchUrl;
+  };
+
   const handleElvieLaunch = async (study) => {
     try {
-      const response = await apiClient.post('/api/integrations/elvie/launch', {
-        studyId: study.id
-      });
-      const launchUrl = response.data?.launchUrl;
-      if (!launchUrl) {
-        throw new Error('Elvie launch URL was not returned');
-      }
-
+      const launchUrl = await getElvieLaunchUrl(study);
       window.open(launchUrl, '_blank', 'noopener,noreferrer');
       setSnackbar({
         open: true,
-        message: 'Opening study in Elvie viewer',
+        message: 'Opening study in Elvie viewer in a new tab',
         severity: 'success'
       });
     } catch (error) {
@@ -1035,6 +1150,25 @@ const ImagingTab = ({
       setSnackbar({
         open: true,
         message: `Failed to launch Elvie viewer: ${error.response?.data?.detail || error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleElvieEmbeddedLaunch = async (study) => {
+    try {
+      const launchUrl = await getElvieLaunchUrl(study);
+      setElvieViewerDialog({ open: true, study, launchUrl });
+      setSnackbar({
+        open: true,
+        message: 'Opening study in embedded Elvie viewer',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('[ImagingTab] Failed to launch embedded Elvie viewer:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to launch embedded Elvie viewer: ${error.response?.data?.detail || error.message}`,
         severity: 'error'
       });
     }
@@ -1504,6 +1638,13 @@ const ImagingTab = ({
         onClose={() => setViewerDialog({ open: false, study: null })}
         study={viewerDialog.study}
         onDownload={handleStudyDownload}
+      />
+
+      <ElvieViewerDialog
+        open={elvieViewerDialog.open}
+        onClose={() => setElvieViewerDialog({ open: false, study: null, launchUrl: null })}
+        launchUrl={elvieViewerDialog.launchUrl}
+        study={elvieViewerDialog.study}
       />
 
       {/* Imaging Report Dialog */}
