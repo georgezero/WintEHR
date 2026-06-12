@@ -158,16 +158,10 @@ ELVIE_DICOMWEB_URL=/orthanc/dicom-web
 Optional demo-only mapping from WintEHR ImagingStudy ids to Orthanc accessions:
 
 ```env
-ELVIE_DEMO_ACCESSION_MAP={"4c059e2f-cf0d-82d3-586c-60ac99629f8d":"NI9f7fae"}
+ELVIE_DEMO_ACCESSION_MAP={"<wintehr-imaging-study-id>":"<orthanc-accession-number>"}
 ```
 
-This is intentionally a fake transform for local demos where the WintEHR fake patient imaging metadata does not match imported DICOM sample data. The default map launches:
-
-- WintEHR patient: `Patient/7569a069-4ea2-7c1d-9191-7199d9b1c985` (`Tammy740 Deneen201 Abernathy524`)
-- WintEHR study: `ImagingStudy/4c059e2f-cf0d-82d3-586c-60ac99629f8d`
-- WintEHR procedure: `Plain chest X-ray (procedure)`
-- Orthanc sample accession: `NI9f7fae`
-- Orthanc sample modality: `CT`
+This is intentionally a fake transform for local demos where the WintEHR fake patient imaging metadata does not match imported DICOM sample data. It is disabled by default and should only be set in local `.env` files for throwaway demo data.
 
 When this mapping is active, the case JSON is marked with:
 
@@ -175,9 +169,9 @@ When this mapping is active, the case JSON is marked with:
 {
   "source": "wintehr-demo-accession-map",
   "study": {
-    "sourceImagingStudyId": "4c059e2f-cf0d-82d3-586c-60ac99629f8d",
-    "sourceWintEhrAccession": "4c059e2f-cf0d-82d3-586c-60ac99629f8d",
-    "orthancAccession": "NI9f7fae"
+    "sourceImagingStudyId": "<wintehr-imaging-study-id>",
+    "sourceWintEhrAccession": "<original-wintehr-accession>",
+    "orthancAccession": "<orthanc-accession-number>"
   }
 }
 ```

@@ -25,10 +25,7 @@ VIEWER_URL = os.getenv("ELVIE_VIEWER_URL", "http://localhost:14175").rstrip("/")
 DICOMWEB_URL = os.getenv("ELVIE_DICOMWEB_URL", "/orthanc/dicom-web").rstrip("/")
 ORTHANC_URL = os.getenv("ELVIE_ORTHANC_URL", "http://host.docker.internal:18042").rstrip("/")
 DICOM_BASE_DIR = Path(os.getenv("DICOM_BASE_DIR", "/app/data/generated_dicoms"))
-DEFAULT_DEMO_ACCESSION_MAP = {
-    # WintEHR sample chest X-ray for Tammy Abernathy -> imported RSNA ICH CT study.
-    "4c059e2f-cf0d-82d3-586c-60ac99629f8d": "NI9f7fae",
-}
+DEFAULT_DEMO_ACCESSION_MAP: Dict[str, str] = {}
 
 
 class ElvieLaunchRequest(BaseModel):

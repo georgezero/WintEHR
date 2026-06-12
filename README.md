@@ -84,9 +84,9 @@ The first deployment takes longer because it downloads Docker images, initialize
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Clinical Portal | http://localhost:3000 | Main EHR interface |
-| FHIR API | http://localhost:8888/fhir | Direct FHIR server access |
-| Backend API | http://localhost:8000/docs | API documentation |
+| Clinical Portal | http://localhost:13000 | Main EHR interface |
+| FHIR API | http://localhost:18888/fhir | Direct FHIR server access |
+| Backend API | http://localhost:18000/docs | API documentation |
 
 ### Demo Users
 
@@ -161,3 +161,14 @@ WintEHR builds on excellent open-source projects:
 ---
 
 Questions or feedback? Open an issue on [GitHub](https://github.com/ultraub/WintEHR/issues).
+
+## Elvie Integration Repositories
+
+The WintEHR-to-Elvie imaging launch path spans four repositories:
+
+| Repository | Branch | Purpose |
+|------------|--------|---------|
+| [georgezero/WintEHR](https://github.com/georgezero/WintEHR) | `wintehr-elvie` | Adds the WintEHR Imaging tab launch button and backend bridge that converts a FHIR `ImagingStudy`/`DiagnosticReport` into an Elvie case launch. |
+| [georgezero/elvie-case-api](https://github.com/georgezero/elvie-case-api) | `feature/wintehr-case-upsert` | Stores and serves Elvie case JSON, including the upsert endpoint WintEHR calls before launching the viewer. |
+| [georgezero/elvie-viewer](https://github.com/georgezero/elvie-viewer) | `feature/wintehr-launch-params` | Allows the viewer to be configured from launch URL parameters such as `caseId`, `accession`, `caseApiBaseUrl`, and `dicomWebBaseUrl`. |
+| [georgezero/elvie-server](https://github.com/georgezero/elvie-server) | `main` | Provides the Elvie server/runtime pieces used by the viewer stack. No WintEHR-specific branch is currently required. |
