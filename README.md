@@ -127,6 +127,7 @@ Detailed documentation is available in the `docs/` directory:
 **Building on top**
 - [CDS Studio Guide](docs/CDS_STUDIO_QUICK_REFERENCE.md) – Visual CDS Hooks builder
 - [External Services Integration](docs/EXTERNAL_SERVICES_INTEGRATION.md) – Plugging in third-party CDS
+- [Elvie Bridge Integration](ELVIE_BRIDGE_INTEGRATION.md) – Launching AgentPACS/Elvie from WintEHR imaging studies
 
 For developer-oriented context (architecture decisions, module ownership), each major directory has a `CLAUDE.md` that describes patterns and constraints local to that area.
 
