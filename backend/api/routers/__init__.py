@@ -108,6 +108,7 @@ def register_all_routers(app: FastAPI) -> None:
         from api.fhir.routers.capability import router as fhir_capability_schema_router
         from api.external_services.router import router as external_services_router
         from api.cds_studio.router import router as cds_studio_router
+        from api.integrations.elvie import router as elvie_router
 
         app.include_router(cds_hooks_router, prefix="/api", tags=["CDS Hooks"])
         app.include_router(visual_builder_router, tags=["CDS Visual Builder"])
@@ -119,6 +120,7 @@ def register_all_routers(app: FastAPI) -> None:
         app.include_router(fhir_capability_schema_router, tags=["FHIR Schemas V2"])
         app.include_router(external_services_router, tags=["External Services"])
         app.include_router(cds_studio_router, tags=["CDS Management Studio"])
+        app.include_router(elvie_router, tags=["Elvie Integration"])
 
 
         logger.info("✓ Integration service routers registered")

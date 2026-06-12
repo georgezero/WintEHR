@@ -73,6 +73,7 @@ import { format, parseISO, formatDistanceToNow, isWithinInterval, subDays, subMo
 import { formatClinicalDate } from '../../../../core/fhir/utils/dateFormatUtils';
 import { useFHIRResource } from '../../../../contexts/FHIRResourceContext';
 import { fhirClient } from '../../../../core/fhir/services/fhirClient';
+import { apiClient } from '../../../../services/api';
 import DICOMViewer from '../../imaging/DICOMViewer';
 import ImagingReportDialog from '../../imaging/ImagingReportDialog';
 import DownloadDialog from '../../imaging/DownloadDialog';
@@ -363,6 +364,11 @@ const ImagingStudyCard = React.memo(({ study, onView, onAction, density = 'comfo
       type: 'button',
       label: 'Report',
       onClick: () => onAction(study, 'report')
+    },
+    {
+      type: 'button',
+      label: 'Elvie',
+      onClick: () => onAction(study, 'elvie')
     },
     {
       type: 'button',
@@ -919,6 +925,9 @@ const ImagingTab = ({
       case 'download':
         setDownloadDialog({ open: true, study });
         break;
+      case 'elvie':
+        handleElvieLaunch(study);
+        break;
       case 'share':
         setShareDialog({ open: true, study });
         break;
@@ -1000,6 +1009,32 @@ const ImagingTab = ({
       setSnackbar({
         open: true,
         message: 'Failed to download study: ' + error.message,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleElvieLaunch = async (study) => {
+    try {
+      const response = await apiClient.post('/api/integrations/elvie/launch', {
+        studyId: study.id
+      });
+      const launchUrl = response.data?.launchUrl;
+      if (!launchUrl) {
+        throw new Error('Elvie launch URL was not returned');
+      }
+
+      window.open(launchUrl, '_blank', 'noopener,noreferrer');
+      setSnackbar({
+        open: true,
+        message: 'Opening study in Elvie viewer',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('[ImagingTab] Failed to launch Elvie viewer:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to launch Elvie viewer: ${error.response?.data?.detail || error.message}`,
         severity: 'error'
       });
     }

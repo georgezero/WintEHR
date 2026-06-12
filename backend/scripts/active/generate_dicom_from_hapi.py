@@ -63,6 +63,16 @@ class HAPIFHIRDicomGenerator:
             'MG': {'slices': 1, 'size': (3328, 4096), 'window': (2000, 1000)},
         }
 
+    @staticmethod
+    def normalize_dicom_uid(value):
+        """FHIR ImagingStudy identifiers may be stored as urn:oid:<uid>; DICOM needs the raw UID."""
+        if not value:
+            return generate_uid()
+        uid = str(value)
+        if uid.startswith('urn:oid:'):
+            uid = uid[len('urn:oid:'):]
+        return uid or generate_uid()
+
     def fetch_imaging_studies(self, max_count=None, patient_id=None):
         """Fetch ImagingStudy resources from HAPI FHIR"""
         logger.info("📡 Fetching ImagingStudy resources from HAPI FHIR...")
@@ -128,7 +138,7 @@ class HAPIFHIRDicomGenerator:
         patient_id = patient_ref.replace('Patient/', '').split('?')[0]
 
         # Get study metadata
-        study_uid = study.get('identifier', [{}])[0].get('value', generate_uid())
+        study_uid = self.normalize_dicom_uid(study.get('identifier', [{}])[0].get('value'))
         study_date = study.get('started', datetime.now().isoformat())[:10].replace('-', '')
         study_time = datetime.now().strftime('%H%M%S')
         description = study.get('description', 'Medical Imaging Study')
@@ -176,6 +186,7 @@ class HAPIFHIRDicomGenerator:
                         slice_idx=slice_idx,
                         patient_id=patient_id,
                         patient_name=patient_name,
+                        accession_number=study_id,
                         study_uid=study_uid,
                         study_date=study_date,
                         study_time=study_time,
@@ -193,7 +204,7 @@ class HAPIFHIRDicomGenerator:
         logger.info(f"  ✅ Generated {total_files} DICOM files in {study_dir.name}")
         return True
 
-    def _create_dicom_file(self, series_dir, slice_idx, patient_id, patient_name,
+    def _create_dicom_file(self, series_dir, slice_idx, patient_id, patient_name, accession_number,
                           study_uid, study_date, study_time, study_desc,
                           series_uid, series_number, series_desc, modality, config):
         """Create a single DICOM file"""
@@ -220,6 +231,7 @@ class HAPIFHIRDicomGenerator:
         ds.StudyTime = study_time
         ds.StudyDescription = study_desc
         ds.StudyID = '1'
+        ds.AccessionNumber = accession_number
 
         # Series information
         ds.SeriesInstanceUID = series_uid

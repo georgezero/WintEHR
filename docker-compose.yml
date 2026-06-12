@@ -233,6 +233,13 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - SMART_BASE_URL=${SMART_BASE_URL:-http://localhost:8000}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - ELVIE_CASE_API_URL=${ELVIE_CASE_API_URL:-http://host.docker.internal:8787}
+      - ELVIE_CASE_API_BROWSER_URL=${ELVIE_CASE_API_BROWSER_URL:-http://localhost:8787}
+      - ELVIE_VIEWER_URL=${ELVIE_VIEWER_URL:-http://localhost:14175}
+      - ELVIE_DICOMWEB_URL=${ELVIE_DICOMWEB_URL:-/orthanc/dicom-web}
+      - ELVIE_ORTHANC_URL=${ELVIE_ORTHANC_URL:-http://host.docker.internal:18042}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       emr-network:
         aliases:
@@ -273,6 +280,13 @@ services:
       - DOMAIN=${DOMAIN:-localhost}
       - FRONTEND_URL=${FRONTEND_URL:-}
       - SMART_BASE_URL=${SMART_BASE_URL:-}
+      - ELVIE_CASE_API_URL=${ELVIE_CASE_API_URL:-http://host.docker.internal:8787}
+      - ELVIE_CASE_API_BROWSER_URL=${ELVIE_CASE_API_BROWSER_URL:-http://localhost:8787}
+      - ELVIE_VIEWER_URL=${ELVIE_VIEWER_URL:-http://localhost:14175}
+      - ELVIE_DICOMWEB_URL=${ELVIE_DICOMWEB_URL:-/orthanc/dicom-web}
+      - ELVIE_ORTHANC_URL=${ELVIE_ORTHANC_URL:-http://host.docker.internal:18042}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       emr-network:
         aliases:
